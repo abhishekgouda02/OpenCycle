@@ -90,6 +90,48 @@ const ItemManagement: React.FC = () => {
 
     setActionLoading(itemId);
     try {
+      // First, delete related records that might prevent deletion
+      // Delete favorites
+      await supabase
+        .from('favorites')
+        .delete()
+        .eq('item_id', itemId);
+
+      // Delete item views
+      await supabase
+        .from('item_views')
+        .delete()
+        .eq('item_id', itemId);
+
+      // Delete reports
+      await supabase
+        .from('reports')
+        .delete()
+        .eq('reported_item_id', itemId);
+
+      // Delete conversations and their messages
+      const { data: conversations } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('item_id', itemId);
+
+      if (conversations && conversations.length > 0) {
+        const conversationIds = conversations.map(c => c.id);
+        
+        // Delete messages first
+        await supabase
+          .from('messages')
+          .delete()
+          .in('conversation_id', conversationIds);
+
+        // Delete conversations
+        await supabase
+          .from('conversations')
+          .delete()
+          .eq('item_id', itemId);
+      }
+
+      // Finally, delete the item itself
       const { error } = await supabase
         .from('items')
         .delete()
@@ -100,6 +142,7 @@ const ItemManagement: React.FC = () => {
       setItems(prev => prev.filter(item => item.id !== itemId));
     } catch (error) {
       console.error('Error deleting item:', error);
+      alert('Failed to delete item. Please try again.');
     } finally {
       setActionLoading(null);
     }
