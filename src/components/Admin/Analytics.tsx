@@ -151,26 +151,50 @@ const Analytics: React.FC = () => {
   };
 
   const fetchTopUsers = async () => {
-    const { data, error } = await supabase
+    // First get users with their item counts
+    const { data: usersData, error: usersError } = await supabase
       .from('users')
       .select(`
         id,
-        full_name,
-        items(count),
-        items!inner(
-          item_views(count)
-        )
+        full_name
       `)
-      .limit(10);
+      .limit(50); // Get more users to filter later
 
-    if (error) throw error;
+    if (usersError) throw usersError;
 
-    return data?.map(user => ({
-      id: user.id,
-      name: user.full_name || 'Anonymous',
-      items: user.items?.[0]?.count || 0,
-      views: user.items?.reduce((total, item) => total + (item.item_views?.[0]?.count || 0), 0) || 0,
-    })).sort((a, b) => b.views - a.views) || [];
+    // Then get item counts and view counts for each user
+    const usersWithStats = await Promise.all(
+      usersData?.map(async (user) => {
+        // Get item count
+        const { count: itemCount } = await supabase
+          .from('items')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        // Get total views for user's items
+        const { data: viewsData } = await supabase
+          .from('item_views')
+          .select('id')
+          .in('item_id', 
+            supabase
+              .from('items')
+              .select('id')
+              .eq('user_id', user.id)
+          );
+
+        return {
+          id: user.id,
+          name: user.full_name || 'Anonymous',
+          items: itemCount || 0,
+          views: viewsData?.length || 0,
+        };
+      }) || []
+    );
+
+    // Sort by views and return top 10
+    return usersWithStats
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 10);
   };
 
   const fetchDailyActivity = async (startDate: Date, endDate: Date) => {
