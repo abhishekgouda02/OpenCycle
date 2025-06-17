@@ -49,7 +49,7 @@ const UserManagement: React.FC = () => {
         .from('users')
         .select(`
           *,
-          items(count)
+          items!items_user_id_fkey(count)
         `)
         .order('created_at', { ascending: false });
 
