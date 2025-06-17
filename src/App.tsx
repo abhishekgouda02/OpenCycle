@@ -8,6 +8,14 @@ import AuthForm from './components/Auth/AuthForm';
 import Dashboard from './components/Dashboard/Dashboard';
 import ItemForm from './components/Items/ItemForm';
 import UserProfile from './components/Profile/UserProfile';
+import AdminLayout from './components/Admin/AdminLayout';
+import AdminDashboard from './components/Admin/AdminDashboard';
+import UserManagement from './components/Admin/UserManagement';
+import ItemManagement from './components/Admin/ItemManagement';
+import ReportsManagement from './components/Admin/ReportsManagement';
+import Analytics from './components/Admin/Analytics';
+import AdminSettings from './components/Admin/AdminSettings';
+import ProtectedAdminRoute from './components/Admin/ProtectedAdminRoute';
 import { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase'
 
@@ -27,39 +35,73 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const AppContent: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/item/:id" element={<ItemDetailPage />} />
-        <Route path="/auth" element={<AuthForm />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/items/new"
-          element={
-            <ProtectedRoute>
-              <ItemForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <UserProfile />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </div>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={
+        <div className="min-h-screen bg-gray-50">
+          <Header />
+          <HomePage />
+        </div>
+      } />
+      <Route path="/item/:id" element={
+        <div className="min-h-screen bg-gray-50">
+          <Header />
+          <ItemDetailPage />
+        </div>
+      } />
+      <Route path="/auth" element={<Auth />} />
+
+      {/* Protected User Routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Header />
+            <Dashboard />
+          </div>
+        </ProtectedRoute>
+      } />
+      <Route path="/items/new" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Header />
+            <ItemForm />
+          </div>
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Header />
+            <UserProfile />
+          </div>
+        </ProtectedRoute>
+      } />
+
+      {/* Admin Routes */}
+      <Route path="/admin" element={
+        <ProtectedAdminRoute>
+          <AdminLayout />
+        </ProtectedAdminRoute>
+      }>
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route path="items" element={<ItemManagement />} />
+        <Route path="reports" element={<ReportsManagement />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="settings" element={<AdminSettings />} />
+      </Route>
+    </Routes>
   );
+};
+
+const Auth: React.FC = () => {
+  const { user } = useAuth();
+  
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <AuthForm />;
 };
 
 function App() {
@@ -71,6 +113,5 @@ function App() {
     </Router>
   );
 }
-
 
 export default App;
